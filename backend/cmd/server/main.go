@@ -12,10 +12,10 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/yourusername/geofence-tracker/internal/api"
-	"github.com/yourusername/geofence-tracker/internal/db"
-	"github.com/yourusername/geofence-tracker/internal/middleware"
-	ws "github.com/yourusername/geofence-tracker/internal/websocket"
+	"github.com/EsakkiRajan18/geofence-tracker/internal/api"
+	"github.com/EsakkiRajan18/geofence-tracker/internal/db"
+	"github.com/EsakkiRajan18/geofence-tracker/internal/middleware"
+	ws "github.com/EsakkiRajan18/geofence-tracker/internal/websocket"
 )
 
 func main() {
@@ -111,13 +111,17 @@ func getEnv(key, fallback string) string {
 
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type,X-API-Key,Authorization")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-API-Key, Authorization")
+
+		// IMPORTANT: handle preflight request
 		if r.Method == http.MethodOptions {
-			w.WriteHeader(http.StatusNoContent)
+			w.WriteHeader(http.StatusOK)
 			return
 		}
+
 		next.ServeHTTP(w, r)
 	})
 }

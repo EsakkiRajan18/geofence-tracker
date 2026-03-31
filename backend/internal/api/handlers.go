@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/yourusername/geofence-tracker/internal/db"
-	"github.com/yourusername/geofence-tracker/internal/models"
-	ws "github.com/yourusername/geofence-tracker/internal/websocket"
+	"github.com/EsakkiRajan18/geofence-tracker/internal/db"
+	"github.com/EsakkiRajan18/geofence-tracker/internal/models"
+	ws "github.com/EsakkiRajan18/geofence-tracker/internal/websocket"
 )
 
 type Handler struct {

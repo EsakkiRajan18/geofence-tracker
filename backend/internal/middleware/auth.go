@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yourusername/geofence-tracker/internal/db"
+	"github.com/EsakkiRajan18/geofence-tracker/internal/db"
 )
 
 // APIKeyAuth validates requests using an X-API-Key header or ?api_key query param.

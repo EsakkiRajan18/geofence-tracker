@@ -7,7 +7,7 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
-	"github.com/yourusername/geofence-tracker/internal/models"
+	"github.com/EsakkiRajan18/geofence-tracker/internal/models"
 )
 
 type DB struct {

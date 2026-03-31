@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/yourusername/geofence-tracker/internal/models"
+	"github.com/EsakkiRajan18/geofence-tracker/internal/models"
 )
 
 var upgrader = websocket.Upgrader{

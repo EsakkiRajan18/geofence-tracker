@@ -213,8 +213,8 @@ websocat "ws://localhost:8080/ws/alerts"
 ```bash
 # Build and push
 cd backend
-docker build -t yourusername/geofence-tracker-backend:latest .
-docker push yourusername/geofence-tracker-backend:latest
+docker build -t EsakkiRajan18/geofence-tracker-backend:latest .
+docker push EsakkiRajan18/geofence-tracker-backend:latest
 
 # On production server
 docker-compose -f docker-compose.yml up -d

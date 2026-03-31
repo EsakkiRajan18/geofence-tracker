@@ -38,10 +38,10 @@ export const WS_URL = (() => {
     return envUrl
   }
   
-  // In dev, use the current origin + proxy path
+  // In dev, connect directly to backend on port 8080
   if (import.meta.env.DEV) {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    return `${protocol}//${window.location.host}/ws/alerts`
+    return `${protocol}//localhost:8080/ws/alerts`
   }
   
   // In prod, construct from the current origin

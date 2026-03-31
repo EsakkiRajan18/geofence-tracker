@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/yourusername/geofence-tracker/internal/models"
+	"github.com/EsakkiRajan18/geofence-tracker/internal/models"
 )
 
 // ── Helpers ────────────────────────────────────────────────────────────────
