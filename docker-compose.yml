@@ -39,12 +39,21 @@ services:
     container_name: geofence_frontend
     depends_on:
       - backend
+    expose:
+      - "3000"
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: geofence_nginx
+    depends_on:
+      - frontend
+      - backend
     ports:
-      - "3000:3000"
-    environment:
-      VITE_API_URL: http://localhost:8080/api
-      VITE_API_KEY: dev-secret-key-change-me
-      VITE_WS_URL: ws://localhost:8080/ws/alerts
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
     restart: unless-stopped
 
 volumes:

@@ -31,20 +31,13 @@ export const api = {
   listViolations: (params) => client.get('/violations/history', { params }).then(unwrap),
 }
 
-// Construct WebSocket URL - use current location in dev, or env var in prod
+// Construct WebSocket URL
 export const WS_URL = (() => {
   const envUrl = import.meta.env.VITE_WS_URL
   if (envUrl) {
     return envUrl
   }
   
-  // In dev, connect directly to backend on port 8080
-  if (import.meta.env.DEV) {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    return `${protocol}//localhost:8080/ws/alerts`
-  }
-  
-  // In prod, construct from the current origin
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   return `${protocol}//${window.location.host}/ws/alerts`
 })()
