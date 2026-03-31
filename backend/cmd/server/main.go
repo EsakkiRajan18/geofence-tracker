@@ -54,13 +54,8 @@ func main() {
 	r := mux.NewRouter()
 	r.Use(corsMiddleware)
 
-	// Handle preflight OPTIONS requests for all routes
-	r.Methods(http.MethodOptions).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-
 	// Public
-	r.HandleFunc("/health", h.Health).Methods(http.MethodGet)
+	r.HandleFunc("/health", h.Health).Methods(http.MethodGet, http.MethodOptions)
 	r.HandleFunc("/ws/alerts", hub.ServeWS)
 
 	// Protected API routes
@@ -116,12 +111,12 @@ func getEnv(key, fallback string) string {
 
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
+		// Set CORS headers for all requests
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-API-Key, Authorization")
 
-		// IMPORTANT: handle preflight request
+		// Handle preflight OPTIONS requests
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)
 			return
