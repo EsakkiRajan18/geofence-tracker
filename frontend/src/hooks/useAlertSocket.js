@@ -5,9 +5,7 @@ export function useAlertSocket(onMessage) {
   const wsRef = useRef(null)
   const [connected, setConnected] = useState(false)
   const reconnectRef = useRef(null)
-  const onMessageRef = useRef(onMessage)
-  onMessageRef.current = onMessage
-
+  
   const connect = useCallback(() => {
     try {
       console.log('[WebSocket] Connecting to:', WS_URL)

@@ -54,6 +54,11 @@ func main() {
 	r := mux.NewRouter()
 	r.Use(corsMiddleware)
 
+	// Handle preflight OPTIONS requests for all routes
+	r.Methods(http.MethodOptions).HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
 	// Public
 	r.HandleFunc("/health", h.Health).Methods(http.MethodGet)
 	r.HandleFunc("/ws/alerts", hub.ServeWS)
@@ -63,18 +68,18 @@ func main() {
 	protected.Use(middleware.APIKeyAuth(database))
 	protected.Use(rl.Middleware)
 
-	protected.HandleFunc("/geofences", h.CreateGeofence).Methods(http.MethodPost)
-	protected.HandleFunc("/geofences", h.ListGeofences).Methods(http.MethodGet)
+	protected.HandleFunc("/geofences", h.CreateGeofence).Methods(http.MethodPost, http.MethodOptions)
+	protected.HandleFunc("/geofences", h.ListGeofences).Methods(http.MethodGet, http.MethodOptions)
 
-	protected.HandleFunc("/vehicles", h.CreateVehicle).Methods(http.MethodPost)
-	protected.HandleFunc("/vehicles", h.ListVehicles).Methods(http.MethodGet)
-	protected.HandleFunc("/vehicles/location", h.UpdateVehicleLocation).Methods(http.MethodPost)
-	protected.HandleFunc("/vehicles/location/{vehicle_id}", h.GetVehicleLocation).Methods(http.MethodGet)
+	protected.HandleFunc("/vehicles", h.CreateVehicle).Methods(http.MethodPost, http.MethodOptions)
+	protected.HandleFunc("/vehicles", h.ListVehicles).Methods(http.MethodGet, http.MethodOptions)
+	protected.HandleFunc("/vehicles/location", h.UpdateVehicleLocation).Methods(http.MethodPost, http.MethodOptions)
+	protected.HandleFunc("/vehicles/location/{vehicle_id}", h.GetVehicleLocation).Methods(http.MethodGet, http.MethodOptions)
 
-	protected.HandleFunc("/alerts/configure", h.ConfigureAlert).Methods(http.MethodPost)
-	protected.HandleFunc("/alerts", h.ListAlerts).Methods(http.MethodGet)
+	protected.HandleFunc("/alerts/configure", h.ConfigureAlert).Methods(http.MethodPost, http.MethodOptions)
+	protected.HandleFunc("/alerts", h.ListAlerts).Methods(http.MethodGet, http.MethodOptions)
 
-	protected.HandleFunc("/violations/history", h.ListViolations).Methods(http.MethodGet)
+	protected.HandleFunc("/violations/history", h.ListViolations).Methods(http.MethodGet, http.MethodOptions)
 
 	// ── Server ─────────────────────────────────────────────────────────────
 	srv := &http.Server{
