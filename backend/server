@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -8,18 +10,57 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/EsakkiRajan18/geofence-tracker/internal/api"
 	"github.com/EsakkiRajan18/geofence-tracker/internal/db"
+	ws "github.com/EsakkiRajan18/geofence-tracker/internal/websocket"
 )
 
+// corsMiddleware allows requests from the Vercel frontend
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Allow requests from your Vercel frontend
-		w.Header().Set("Access-Control-Allow-Origin", "https://geofence-tracker.vercel.app")
+		origin := r.Header.Get("Origin")
+		allowed := map[string]bool{
+			"https://geofence-tracker.vercel.app": true,
+			"http://localhost:3000":               true,
+			"http://localhost:5173":               true,
+		}
+		if allowed[origin] {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+		}
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Key")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
 
-		// Handle preflight OPTIONS request
+		// Handle preflight
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// apiKeyMiddleware validates the X-API-Key header
+func apiKeyMiddleware(database *db.DB, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Skip auth for health check and WebSocket
+		if r.URL.Path == "/health" || r.URL.Path == "/ws" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		key := r.Header.Get("X-API-Key")
+		if key == "" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte(`{"error":"missing API key","time_ns":0}`))
+			return
+		}
+
+		hash := fmt.Sprintf("%x", sha256.Sum256([]byte(key)))
+		apiKey, err := database.GetAPIKeyByHash(hash)
+		if err != nil || apiKey == nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte(`{"error":"invalid API key","time_ns":0}`))
 			return
 		}
 
@@ -28,74 +69,82 @@ func corsMiddleware(next http.Handler) http.Handler {
 }
 
 func main() {
-	// Get DATABASE_URL from environment variable
+	// ── Database ─────────────────────────────────────────────────────────────
 	dbURL := os.Getenv("DATABASE_URL")
 	if dbURL == "" {
 		log.Fatal("DATABASE_URL environment variable is not set")
 	}
 
-	// Initialize database connection
-	database, err := db.Connect(dbURL)
+	database, err := db.New(dbURL)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 	defer database.Close()
 
-	// Run migrations to create tables if they don't exist
-	if err := db.Migrate(database); err != nil {
+	if err := database.Migrate(); err != nil {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
+	log.Println("✅ Database connected and migrated")
 
-	// Initialize router
+	// ── Seed API Key ──────────────────────────────────────────────────────────
+	// Set API_KEY env var on Render — this is the key your frontend must send
+	seedKey := os.Getenv("API_KEY")
+	if seedKey != "" {
+		hash := fmt.Sprintf("%x", sha256.Sum256([]byte(seedKey)))
+		if err := database.SeedAPIKey(hash, "default"); err != nil {
+			log.Printf("Warning: could not seed API key: %v", err)
+		} else {
+			log.Println("✅ API key seeded")
+		}
+	} else {
+		log.Println("⚠️  API_KEY env var not set — all API requests will be rejected")
+	}
+
+	// ── WebSocket Hub ─────────────────────────────────────────────────────────
+	hub := ws.NewHub()
+	go hub.Run()
+
+	// ── Router ────────────────────────────────────────────────────────────────
 	r := mux.NewRouter()
 
-	// Apply CORS middleware to all routes
 	r.Use(corsMiddleware)
+	r.Use(func(next http.Handler) http.Handler {
+		return apiKeyMiddleware(database, next)
+	})
 
-	// Initialize handlers with db
-	h := api.NewHandler(database)
+	h := api.NewHandler(database, hub)
 
-	// ── Geofence Routes ──
-	r.HandleFunc("/geofences", h.GetGeofences).Methods("GET", "OPTIONS")
-	r.HandleFunc("/geofences", h.CreateGeofence).Methods("POST", "OPTIONS")
-	r.HandleFunc("/geofences/{id}", h.GetGeofence).Methods("GET", "OPTIONS")
-	r.HandleFunc("/geofences/{id}", h.UpdateGeofence).Methods("PUT", "OPTIONS")
-	r.HandleFunc("/geofences/{id}", h.DeleteGeofence).Methods("DELETE", "OPTIONS")
+	// Health
+	r.HandleFunc("/health", h.Health).Methods("GET")
 
-	// ── Vehicle Routes ──
-	r.HandleFunc("/vehicles", h.GetVehicles).Methods("GET", "OPTIONS")
-	r.HandleFunc("/vehicles", h.CreateVehicle).Methods("POST", "OPTIONS")
-	r.HandleFunc("/vehicles/{id}", h.GetVehicle).Methods("GET", "OPTIONS")
-	r.HandleFunc("/vehicles/{id}", h.UpdateVehicle).Methods("PUT", "OPTIONS")
-	r.HandleFunc("/vehicles/{id}", h.DeleteVehicle).Methods("DELETE", "OPTIONS")
-	r.HandleFunc("/vehicles/{id}/location", h.UpdateVehicleLocation).Methods("POST", "OPTIONS")
-
-	// ── Alert Routes ──
-	r.HandleFunc("/alerts", h.GetAlerts).Methods("GET", "OPTIONS")
-	r.HandleFunc("/alerts", h.CreateAlert).Methods("POST", "OPTIONS")
-	r.HandleFunc("/alerts/{id}", h.DeleteAlert).Methods("DELETE", "OPTIONS")
-
-	// ── History Routes ──
-	r.HandleFunc("/history", h.GetHistory).Methods("GET", "OPTIONS")
-
-	// ── WebSocket Route ──
+	// WebSocket
 	r.HandleFunc("/ws", h.WebSocketHandler)
 
-	// ── Health Check ──
-	r.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
-	}).Methods("GET")
+	// Geofences
+	r.HandleFunc("/geofences", h.ListGeofences).Methods("GET", "OPTIONS")
+	r.HandleFunc("/geofences", h.CreateGeofence).Methods("POST", "OPTIONS")
 
-	// Get port from environment or default to 8080
+	// Vehicles
+	r.HandleFunc("/vehicles", h.ListVehicles).Methods("GET", "OPTIONS")
+	r.HandleFunc("/vehicles", h.CreateVehicle).Methods("POST", "OPTIONS")
+	r.HandleFunc("/vehicles/{vehicle_id}/location", h.GetVehicleLocation).Methods("GET", "OPTIONS")
+	r.HandleFunc("/vehicles/location", h.UpdateVehicleLocation).Methods("POST", "OPTIONS")
+
+	// Alerts
+	r.HandleFunc("/alerts", h.ListAlerts).Methods("GET", "OPTIONS")
+	r.HandleFunc("/alerts", h.ConfigureAlert).Methods("POST", "OPTIONS")
+
+	// History
+	r.HandleFunc("/history", h.ListViolations).Methods("GET", "OPTIONS")
+
+	// ── Start ─────────────────────────────────────────────────────────────────
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	log.Printf("🚀 Server starting on port %s", port)
+	log.Printf("🚀 Server listening on :%s", port)
 	if err := http.ListenAndServe(":"+port, r); err != nil {
-		log.Fatalf("Server failed to start: %v", err)
+		log.Fatalf("Server error: %v", err)
 	}
 }
