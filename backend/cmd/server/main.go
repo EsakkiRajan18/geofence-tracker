@@ -65,14 +65,17 @@ func main() {
 
 	protected.HandleFunc("/geofences", h.CreateGeofence).Methods(http.MethodPost, http.MethodOptions)
 	protected.HandleFunc("/geofences", h.ListGeofences).Methods(http.MethodGet, http.MethodOptions)
+	protected.HandleFunc("/geofences/{geofence_id}", h.DeleteGeofence).Methods(http.MethodDelete, http.MethodOptions)
 
 	protected.HandleFunc("/vehicles", h.CreateVehicle).Methods(http.MethodPost, http.MethodOptions)
 	protected.HandleFunc("/vehicles", h.ListVehicles).Methods(http.MethodGet, http.MethodOptions)
+	protected.HandleFunc("/vehicles/{vehicle_id}", h.DeleteVehicle).Methods(http.MethodDelete, http.MethodOptions)
 	protected.HandleFunc("/vehicles/location", h.UpdateVehicleLocation).Methods(http.MethodPost, http.MethodOptions)
 	protected.HandleFunc("/vehicles/location/{vehicle_id}", h.GetVehicleLocation).Methods(http.MethodGet, http.MethodOptions)
 
 	protected.HandleFunc("/alerts/configure", h.ConfigureAlert).Methods(http.MethodPost, http.MethodOptions)
 	protected.HandleFunc("/alerts", h.ListAlerts).Methods(http.MethodGet, http.MethodOptions)
+	protected.HandleFunc("/alerts/{alert_id}", h.DeleteAlert).Methods(http.MethodDelete, http.MethodOptions)
 
 	protected.HandleFunc("/violations/history", h.ListViolations).Methods(http.MethodGet, http.MethodOptions)
 

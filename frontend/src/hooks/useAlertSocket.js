@@ -5,6 +5,12 @@ export function useAlertSocket(onMessage) {
   const wsRef = useRef(null)
   const [connected, setConnected] = useState(false)
   const reconnectRef = useRef(null)
+  const onMessageRef = useRef(onMessage)
+
+  // Update callback ref when onMessage changes
+  useEffect(() => {
+    onMessageRef.current = onMessage
+  }, [onMessage])
   
   const connect = useCallback(() => {
     try {

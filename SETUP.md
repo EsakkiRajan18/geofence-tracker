@@ -208,16 +208,481 @@ websocat "ws://localhost:8080/ws/alerts"
 
 ---
 
-## Docker Hub Deployment
+---
+
+## 🚀 PRODUCTION DEPLOYMENT GUIDE
+
+### Overview
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    PRODUCTION ARCHITECTURE                    │
+├──────────────────────────────────────────────────────────────┤
+│  Frontend (Vercel/Netlify)    Backend (Render/Railway/EC2)   │
+│       ↓                              ↓                        │
+│  React SPA (dist/)     ←→  REST API + WebSocket (8080)       │
+│  HTTPS (CDN)           ←→  Docker Container                  │
+│       ↓                              ↓                        │
+│   Browser                    PostgreSQL + PostGIS            │
+│                         (RDS/Managed/Docker)                 │
+└──────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Step 1: Push to Docker Hub
+
+#### Prerequisites
+- Docker Hub account: https://hub.docker.com/
+- Docker CLI installed and logged in: `docker login`
+
+#### Build and Push Backend Image
 
 ```bash
-# Build and push
-cd backend
-docker build -t EsakkiRajan18/geofence-tracker-backend:latest .
-docker push EsakkiRajan18/geofence-tracker-backend:latest
+# Navigate to project root
+cd geofence-tracker
 
-# On production server
+# Build the backend image
+docker build -t YOUR-USERNAME/geofence-tracker-backend:latest ./backend
+
+# Tag with version (optional but recommended)
+docker tag YOUR-USERNAME/geofence-tracker-backend:latest \
+           YOUR-USERNAME/geofence-tracker-backend:v1.0.0
+
+# Push to Docker Hub
+docker push YOUR-USERNAME/geofence-tracker-backend:latest
+docker push YOUR-USERNAME/geofence-tracker-backend:v1.0.0
+
+# Verify on Docker Hub dashboard
+# https://hub.docker.com/r/YOUR-USERNAME/geofence-tracker-backend
+```
+
+**Example (replace YOUR-USERNAME):**
+```bash
+docker build -t esakkimaran/geofence-tracker-backend:latest ./backend
+docker push esakkimaran/geofence-tracker-backend:latest
+```
+
+---
+
+### Step 2: Deploy Backend
+
+**Option A: Render.com** (Easiest)
+```bash
+# 1. Sign up at https://render.com
+
+# 2. Create new Web Service
+#    - GitHub/GitLab repo
+#    - Runtime: Docker
+#    - Build Command: docker build -t myapp . ./backend
+#    - Start Command: ./server
+#    - Environment:
+DATABASE_URL=postgresql://user:pass@db-host:5432/geofence?sslmode=require
+SEED_API_KEY=your-secure-api-key-here
+PORT=10000
+
+# 3. Add PostgreSQL Database (via Render)
+#    - Region: same as backend
+#    - Backup: enabled
+#    - Create and save DATABASE_URL
+
+# 4. Link backend to database in Render Environment
+```
+
+**Option B: Railway.app** (Quick Setup)
+```bash
+# 1. https://railway.app signup
+# 2. New Project → Docker
+# 3. Upload Dockerfile from ./backend
+# 4. Add PostgreSQL (Railway plugin)
+# 5. Set environment variables (same as above)
+# 6. Deploy (auto-generates public URL)
+```
+
+**Option C: AWS EC2** (Full Control)
+```bash
+# 1. Launch EC2 instance (Ubuntu 22.04 LTS)
+# 2. SSH into instance
+# 3. Install Docker & Docker Compose
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+
+# 4. Clone repo
+git clone https://github.com/YOUR-USERNAME/geofence-tracker.git
+cd geofence-tracker
+
+# 5. Create .env file
+cat > .env <<EOF
+DATABASE_URL=postgresql://user:pass@rds-endpoint:5432/geofence?sslmode=require
+SEED_API_KEY=your-secure-key
+PORT=8080
+EOF
+
+# 6. Run with docker-compose
 docker-compose -f docker-compose.yml up -d
+
+# 7. Configure Security Group (inbound):
+#    - Port 80 (HTTP)
+#    - Port 443 (HTTPS)
+#    - Port 8080 (Backend, optional)
+```
+
+**Option D: DigitalOcean** (Via Docker Hub)
+```bash
+# 1. Create App Platform or Droplet
+# 2. Deploy from Docker Hub image:
+#    docker pull YOUR-USERNAME/geofence-tracker-backend
+# 3. Or use docker-compose:
+#    docker-compose up -d
+```
+
+---
+
+### Step 3: Database Setup
+
+#### Using Managed PostgreSQL (Recommended for Production)
+
+**Render PostgreSQL:**
+```bash
+# Automatically created; copy DATABASE_URL
+# Format: postgresql://user:randompass@dpg-xyz.render.internal:5432/geofence
+```
+
+**Railway PostgreSQL:**
+```bash
+# Click "Add" → PostgreSQL
+# Auto-generates connection string in env vars
+```
+
+**AWS RDS:**
+```bash
+# 1. https://aws.amazon.com/rds/
+# 2. Create DB Instance (PostgreSQL 15)
+# 3. Add PostGIS extension:
+#    psql -U postgres -h rds-endpoint -d geofence
+#    postgres=# CREATE EXTENSION postgis;
+#    postgres=# \dx
+```
+
+**DigitalOcean Managed Database:**
+```bash
+# 1. Create Managed PostgreSQL
+# 2. Auto-creates primary + replicas
+# 3. Copy connection string to backend env vars
+```
+
+#### Seed Database
+```bash
+# If using managed DB, manually create tables:
+psql -U postgres -h your-db-host -d geofence < migrations/init.sql
+
+# Tables created:
+# - geofences
+# - vehicles
+# - alerts
+# - violation_history
+# - vehicle_geofence_state
+# - api_keys
+```
+
+---
+
+### Step 4: Deploy Frontend
+
+#### Environment Variables for Frontend
+
+Create `.env` or set in your hosting platform:
+
+```env
+# .env (development & build-time)
+VITE_API_URL=https://your-backend.example.com
+VITE_WS_URL=wss://your-backend.example.com
+VITE_API_KEY=your-production-api-key
+```
+
+#### Deploy to Vercel
+
+```bash
+# 1. Sign up: https://vercel.com
+
+# 2. Install Vercel CLI
+npm install -g vercel
+
+# 3. From frontend directory
+cd frontend
+vercel
+
+# 4. Set environment variables in Vercel dashboard:
+#    Project Settings → Environment Variables
+#    VITE_API_URL = https://backend-xyz.onrender.com
+#    VITE_WS_URL = wss://backend-xyz.onrender.com
+#    VITE_API_KEY = your-api-key
+
+# 5. Redeploy
+vercel --prod
+```
+
+#### Deploy to Netlify
+
+```bash
+# 1. Sign up: https://netlify.com
+
+# 2. Build locally
+cd frontend
+npm run build
+
+# 3. Drag-and-drop dist/ folder or connect GitHub
+
+# 4. Setup environment variables:
+#    Site settings → Build & Deploy → Environment
+#    Add same VITE_* variables
+
+# 5. Trigger redeploy
+```
+
+#### Deploy to Cloudflare Pages
+
+```bash
+# 1. Sign up: https://pages.cloudflare.com
+
+# 2. Connect GitHub repo
+
+# 3. Build settings:
+#    Framework: None
+#    Build command: npm run build
+#    Build output directory: dist
+
+# 4. Set environment variables (same as above)
+
+# 5. Publish
+```
+
+---
+
+### Step 5: Configure API Key
+
+**Production API Key Setup:**
+
+```bash
+# Never use 'dev-secret-key-change-me' in production!
+
+# 1. Generate secure key (32 bytes):
+openssl rand -hex 16
+# Output: a7f3d9e4c2b1f8a6e5d4c3b2a1f9e8d7
+
+# 2. Set in backend environment:
+SEED_API_KEY=a7f3d9e4c2b1f8a6e5d4c3b2a1f9e8d7
+
+# 3. Set in frontend environment:
+VITE_API_KEY=a7f3d9e4c2b1f8a6e5d4c3b2a1f9e8d7
+
+# 4. Restart backend service
+docker-compose restart backend
+```
+
+---
+
+### Step 6: Test Deployed Services
+
+#### Test Backend API
+
+```bash
+# Replace with your backend URL
+BACKEND_URL="https://your-backend.example.com"
+API_KEY="your-api-key"
+
+# 1. Health check
+curl -s "$BACKEND_URL/health" | jq
+
+# 2. Create geofence
+curl -s -X POST "$BACKEND_URL/geofences" \
+  -H "X-API-Key: $API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "geofence_name": "Test Zone",
+    "category": "test",
+    "coordinates": [[77.5, 12.9], [77.6, 12.9], [77.6, 13.0], [77.5, 13.0], [77.5, 12.9]]
+  }' | jq
+
+# 3. Test WebSocket
+websocat "wss://your-backend.example.com/ws/alerts"
+# Should connect successfully
+```
+
+#### Test Frontend
+
+```bash
+# 1. Open in browser:
+https://your-frontend.example.com
+
+# 2. Verify no console errors
+# 3. Test creating a geofence
+# 4. Test vehicle registration
+# 5. Check WebSocket connection (DevTools → Network → WS)
+```
+
+---
+
+### Step 7: Enable HTTPS & SSL
+
+#### For Backend (Render/Railway Auto-SSL)
+```bash
+# Render & Railway auto-enable HTTPS
+# Verify with:
+curl -I https://your-backend.example.com
+# Should return 200 OK
+```
+
+#### For Custom Domain (Render)
+```bash
+# 1. Add custom domain in Render dashboard
+# 2. Update DNS with CNAME pointing to Render
+# 3. Auto-provisions Let's Encrypt cert
+```
+
+#### For Nginx (EC2/VPS)
+```bash
+# 1. Install Certbot
+sudo apt install certbot python3-certbot-nginx
+
+# 2. Issue cert
+sudo certbot certonly --standalone -d your-backend.example.com
+
+# 3. Update nginx.conf
+cat > /etc/nginx/conf.d/default.conf <<EOF
+server {
+    listen 443 ssl;
+    server_name your-backend.example.com;
+
+    ssl_certificate /etc/letsencrypt/live/your-backend.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/your-backend.example.com/privkey.pem;
+
+    location / {
+        proxy_pass http://backend:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+EOF
+
+# 4. Reload
+sudo nginx -s reload
+```
+
+---
+
+### Step 8: Production Monitoring & Logs
+
+#### View Backend Logs
+
+**Render:**
+```bash
+# Via dashboard: Logs tab
+# Or use Render CLI
+render logs backend-service-id
+```
+
+**Railway:**
+```bash
+# Via dashboard: Logs tab
+# Real-time monitoring
+```
+
+**AWS EC2:**
+```bash
+# SSH into instance
+ssh -i your-key.pem ubuntu@your-instance-ip
+
+# View docker logs
+docker logs -f geofence_backend
+
+# Check disk/memory
+df -h
+free -m
+```
+
+#### Error Handling
+
+```bash
+# Common issues:
+# 1. Backend not connecting to DB
+#    → Check DATABASE_URL in env vars
+#    → Verify DB is accessible (test connection)
+
+# 2. Frontend can't reach backend
+#    → Check VITE_API_URL in frontend env
+#    → Verify backend is running
+#    → Test CORS headers
+
+# 3. WebSocket connection fails
+#    → Ensure wss:// (secure) is used for HTTPS backend
+#    → Check firewall allows WebSocket traffic
+
+# 4. HTTPS cert issues
+#    → Verify DNS points to backend
+#    → Wait 10 mins for DNS propagation
+#    → Check cert with: openssl s_client -connect your-backend.example.com:443
+```
+
+---
+
+### Step 9: Deployment Checklist
+
+Before going live, verify:
+
+- [ ] Backend Docker image built and pushed to Docker Hub
+- [ ] Backend deployed and accessible at `https://your-backend.example.com`
+- [ ] Database migrated with all tables created
+- [ ] Database connection string verified in backend env vars
+- [ ] API key generated and set in both backend & frontend env vars
+- [ ] Frontend build succeeds: `npm run build`
+- [ ] Frontend deployed at `https://your-frontend.example.com`
+- [ ] Frontend env vars include correct backend URL
+- [ ] API endpoints return correct responses with `time_ns` field
+- [ ] WebSocket `/ws/alerts` connects and broadcasts events
+- [ ] HTTPS/SSL enabled for both frontend and backend
+- [ ] Rate limiting working (test 11 requests in 1 sec from same IP)
+- [ ] CORS headers allow frontend domain
+- [ ] Database backups enabled
+- [ ] GitHub repo includes all code + docker-compose.yml + SETUP.md
+- [ ] Collaborators added to GitHub repo (private)
+- [ ] No plaintext secrets in code or repo
+- [ ] Health check endpoint responds: `GET /health`
+
+---
+
+### Step 10: GitHub Setup
+
+```bash
+# 1. Create GitHub repo (Private!)
+# https://github.com/new
+
+# 2. Add all files
+git add .
+git commit -m "Initial commit: geofence-tracker with Docker + deployment"
+git branch -M main
+git remote add origin https://github.com/YOUR-USERNAME/geofence-tracker.git
+git push -u origin main
+
+# 3. Add collaborators (if required)
+# Settings → Collaborators → Add by email/username
+# Choose "Maintainer" role
+
+# 4. Add .gitignore (ensure no secrets)
+cat > .gitignore <<EOF
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+/backend/server
+/backend/*.exe
+EOF
+git add .gitignore
+git commit -m "Add gitignore"
+git push
 ```
 
 ---

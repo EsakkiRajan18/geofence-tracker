@@ -47,6 +47,7 @@ export default function App() {
   }, [])
 
   const handleAlert = useCallback((msg) => {
+    console.log('[App] Alert received:', msg)
     setAlerts(prev => [msg, ...prev].slice(0, 50))
     const isEntry = msg.event_type === 'entry'
     toast.custom(
@@ -122,18 +123,18 @@ export default function App() {
         </div>
 
         {/* Nav */}
-        <nav className="p-3 space-y-0.5">
+        <nav className="p-4 space-y-1.5">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setTab(id)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all ${
                 tab === id
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                  ? 'bg-blue-600 text-white shadow-md scale-[1.02]'
+                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 hover:shadow-sm'
               }`}
             >
-              <Icon size={15} />
+              <Icon size={16} />
               {label}
             </button>
           ))}

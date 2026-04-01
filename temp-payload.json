@@ -1,0 +1,27 @@
+{
+  "coordinates": [
+    [
+      77.58,
+      12.89
+    ],
+    [
+      77.65,
+      12.89
+    ],
+    [
+      77.65,
+      12.95
+    ],
+    [
+      77.58,
+      12.95
+    ],
+    [
+      77.58,
+      12.89
+    ]
+  ],
+  "geofence_name": "Test123",
+  "category": "commercial",
+  "description": "Test"
+}

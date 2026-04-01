@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
 import toast from 'react-hot-toast'
-import { Bell, Plus, X, RefreshCw, CheckCircle } from 'lucide-react'
+import { Bell, Plus, X, RefreshCw, CheckCircle, Trash2 } from 'lucide-react'
 
 export default function AlertPanel() {
   const [alerts, setAlerts]       = useState([])
@@ -59,6 +59,20 @@ export default function AlertPanel() {
       toast.error(err.response?.data?.error ?? 'Failed to configure alert')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleDelete = async (alert) => {
+    if (!window.confirm(`Delete alert rule for "${alert.geofence_name}"? This cannot be undone.`)) {
+      return
+    }
+
+    try {
+      await api.deleteAlert(alert.alert_id)
+      toast.success('Alert rule deleted')
+      load()
+    } catch (err) {
+      toast.error(err.response?.data?.error ?? 'Failed to delete alert')
     }
   }
 
@@ -158,15 +172,21 @@ export default function AlertPanel() {
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
           {alerts.map(a => (
-            <div key={a.alert_id} className="card p-3">
+            <div key={a.alert_id} className="card p-3 group hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between mb-1.5">
-                {eventTag(a.event_type)}
                 <div className="flex items-center gap-1">
+                  {eventTag(a.event_type)}
                   {a.is_active
                     ? <CheckCircle size={12} className="text-green-500" />
                     : <X size={12} className="text-gray-400" />}
-                  <span className="text-xs text-gray-400">{a.is_active ? 'Active' : 'Off'}</span>
                 </div>
+                <button
+                  onClick={() => handleDelete(a)}
+                  className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100"
+                  title="Delete alert"
+                >
+                  <Trash2 size={12} />
+                </button>
               </div>
               <p className="text-sm font-medium text-gray-900 truncate">{a.geofence_name}</p>
               <p className="text-xs text-gray-500 mt-0.5">

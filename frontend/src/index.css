@@ -10,29 +10,34 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg
-           transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg
+           transition-all shadow-md hover:shadow-lg hover:shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed
+           transform hover:scale-[1.02] active:scale-95;
   }
   .btn-secondary {
     @apply bg-white hover:bg-gray-50 text-gray-700 font-medium py-2 px-4 rounded-lg
-           border border-gray-300 transition-colors;
+           border border-gray-300 transition-all shadow-sm hover:shadow-md disabled:opacity-50
+           transform hover:scale-[1.01] active:scale-95;
   }
   .btn-danger {
     @apply bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-3 rounded-lg
-           transition-colors text-sm;
+           transition-all text-sm shadow-md hover:shadow-lg
+           transform hover:scale-[1.02] active:scale-95;
   }
   .card {
-    @apply bg-white rounded-xl shadow-sm border border-gray-200;
+    @apply bg-white rounded-xl shadow-sm border border-gray-200 transition-all
+           hover:shadow-md hover:border-gray-300 hover:transform hover:scale-[1.01];
   }
   .input {
     @apply w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
-           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+           transition-all;
   }
   .label {
-    @apply block text-sm font-medium text-gray-700 mb-1;
+    @apply block text-sm font-semibold text-gray-700 mb-1;
   }
   .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold;
   }
   .badge-blue   { @apply badge bg-blue-100 text-blue-800; }
   .badge-green  { @apply badge bg-green-100 text-green-800; }
@@ -41,12 +46,111 @@
   .badge-gray   { @apply badge bg-gray-100 text-gray-700; }
 }
 
-/* Leaflet fix */
+/* Leaflet customization */
 .leaflet-container {
   height: 100%;
   width: 100%;
   border-radius: 0.75rem;
 }
+
+/* Leaflet zoom controls repositioning */
+.leaflet-control-zoom {
+  margin-top: 90px !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+  background-color: white !important;
+  border: 2px solid #e5e7eb !important;
+  transition: all 0.2s ease !important;
+}
+
+.leaflet-control-zoom-in:hover,
+.leaflet-control-zoom-out:hover {
+  background-color: #f3f4f6 !important;
+  transform: scale(1.08);
+}
+
+.leaflet-control-zoom-in:active,
+.leaflet-control-zoom-out:active {
+  transform: scale(0.95);
+}
+
+/* Leaflet popup styling */
+.leaflet-popup-content-wrapper {
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2) !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+}
+
+.leaflet-popup-content {
+  font-size: 13px !important;
+  line-height: 1.5;
+}
+
+.leaflet-popup-tip {
+  background: rgba(255, 255, 255, 0.98) !important;
+}
+
+/* Smooth transitions */
+* {
+  @apply transition-colors duration-200;
+}
+
+/* Leaflet Draw Toolbar */
+.leaflet-draw-toolbar {
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: flex;
+  gap: 2px;
+  padding: 5px;
+}
+
 .leaflet-draw-toolbar a {
+  display: block;
+  width: 30px;
+  height: 30px;
+  background-size: 30px 30px;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: transparent;
+  border: 1px solid transparent;
+  transition: all 0.2s;
   background-image: url('https://unpkg.com/leaflet-draw@1.0.4/dist/images/spritesheet.png');
+}
+
+.leaflet-draw-toolbar a:hover {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.leaflet-draw-toolbar a.leaflet-draw-edit {
+  background-position: -30px 0;
+}
+
+.leaflet-draw-toolbar a.leaflet-draw-create-marker {
+  background-position: -60px 0;
+}
+
+.leaflet-draw-toolbar a.leaflet-draw-create-polyline {
+  background-position: 0 -30px;
+}
+
+.leaflet-draw-toolbar a.leaflet-draw-create-rectangle {
+  background-position: -30px -30px;
+}
+
+.leaflet-draw-toolbar a.leaflet-draw-create-polygon {
+  background-position: -60px -30px;
+}
+
+.leaflet-draw-toolbar a.leaflet-draw-create-circle {
+  background-position: 0 -60px;
+}
+
+.leaflet-draw-toolbar a.leaflet-draw-finish {
+  background-position: -30px -60px;
 }

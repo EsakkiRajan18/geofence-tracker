@@ -175,6 +175,21 @@ func (d *DB) GetGeofenceByID(id int64) (*models.Geofence, error) {
 	return &g, nil
 }
 
+func (d *DB) DeleteGeofence(id int64) error {
+	result, err := d.conn.Exec(`DELETE FROM geofences WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
 // ── Vehicles ───────────────────────────────────────────────────────────────
 
 func (d *DB) CreateVehicle(req models.CreateVehicleRequest) (*models.Vehicle, error) {
@@ -218,6 +233,21 @@ func (d *DB) GetVehicleByID(id int64) (*models.Vehicle, error) {
 		return nil, nil
 	}
 	return &v, err
+}
+
+func (d *DB) DeleteVehicle(id int64) error {
+	result, err := d.conn.Exec(`DELETE FROM vehicles WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
 }
 
 // ── Location ───────────────────────────────────────────────────────────────
@@ -429,6 +459,21 @@ func (d *DB) GetMatchingAlertConfigs(vehicleID, geofenceID int64, eventType stri
 		result = append(result, a)
 	}
 	return result, rows.Err()
+}
+
+func (d *DB) DeleteAlertConfig(id int64) error {
+	result, err := d.conn.Exec(`DELETE FROM alert_configs WHERE id = $1`, id)
+	if err != nil {
+		return err
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
 }
 
 // ── Violations History ─────────────────────────────────────────────────────

@@ -108,6 +108,31 @@ func (h *Handler) ListGeofences(w http.ResponseWriter, r *http.Request) {
 	h.respond(w, start, http.StatusOK, geofences, "")
 }
 
+func (h *Handler) DeleteGeofence(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	vars := mux.Vars(r)
+	geofenceID, err := strconv.ParseInt(vars["geofence_id"], 10, 64)
+	if err != nil {
+		h.respond(w, start, http.StatusBadRequest, nil, "invalid geofence_id")
+		return
+	}
+
+	// Check if geofence exists
+	geofence, err := h.db.GetGeofenceByID(geofenceID)
+	if err != nil || geofence == nil {
+		h.respond(w, start, http.StatusNotFound, nil, "geofence not found")
+		return
+	}
+
+	// Delete the geofence
+	if err := h.db.DeleteGeofence(geofenceID); err != nil {
+		h.respond(w, start, http.StatusInternalServerError, nil, "failed to delete geofence: "+err.Error())
+		return
+	}
+
+	h.respond(w, start, http.StatusOK, map[string]string{"message": "geofence deleted"}, "")
+}
+
 // ── Vehicles ───────────────────────────────────────────────────────────────
 
 func (h *Handler) CreateVehicle(w http.ResponseWriter, r *http.Request) {
@@ -141,6 +166,31 @@ func (h *Handler) ListVehicles(w http.ResponseWriter, r *http.Request) {
 		vehicles = []models.Vehicle{}
 	}
 	h.respond(w, start, http.StatusOK, vehicles, "")
+}
+
+func (h *Handler) DeleteVehicle(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	vars := mux.Vars(r)
+	vehicleID, err := strconv.ParseInt(vars["vehicle_id"], 10, 64)
+	if err != nil {
+		h.respond(w, start, http.StatusBadRequest, nil, "invalid vehicle_id")
+		return
+	}
+
+	// Check if vehicle exists
+	vehicle, err := h.db.GetVehicleByID(vehicleID)
+	if err != nil || vehicle == nil {
+		h.respond(w, start, http.StatusNotFound, nil, "vehicle not found")
+		return
+	}
+
+	// Delete the vehicle
+	if err := h.db.DeleteVehicle(vehicleID); err != nil {
+		h.respond(w, start, http.StatusInternalServerError, nil, "failed to delete vehicle: "+err.Error())
+		return
+	}
+
+	h.respond(w, start, http.StatusOK, map[string]string{"message": "vehicle deleted"}, "")
 }
 
 // ── Location ───────────────────────────────────────────────────────────────
@@ -359,6 +409,24 @@ func (h *Handler) ListAlerts(w http.ResponseWriter, r *http.Request) {
 		alerts = []models.AlertConfig{}
 	}
 	h.respond(w, start, http.StatusOK, alerts, "")
+}
+
+func (h *Handler) DeleteAlert(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+	vars := mux.Vars(r)
+	alertID, err := strconv.ParseInt(vars["alert_id"], 10, 64)
+	if err != nil {
+		h.respond(w, start, http.StatusBadRequest, nil, "invalid alert_id")
+		return
+	}
+
+	// Delete the alert
+	if err := h.db.DeleteAlertConfig(alertID); err != nil {
+		h.respond(w, start, http.StatusInternalServerError, nil, "failed to delete alert: "+err.Error())
+		return
+	}
+
+	h.respond(w, start, http.StatusOK, map[string]string{"message": "alert deleted"}, "")
 }
 
 // ── Violations ─────────────────────────────────────────────────────────────

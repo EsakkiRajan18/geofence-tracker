@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
 import toast from 'react-hot-toast'
-import { Plus, Car, Navigation, RefreshCw, X } from 'lucide-react'
+import { Plus, Car, Navigation, RefreshCw, X, Trash2 } from 'lucide-react'
 
 const VEHICLE_TYPES = ['Car', 'Truck', 'Van', 'Motorcycle', 'Bus', 'Pickup', 'Other']
 
@@ -79,6 +79,20 @@ export default function VehiclePanel({ onVehiclesChange }) {
       toast.error(err.response?.data?.error ?? 'Failed to update location')
     } finally {
       setUpdatingLoc(false)
+    }
+  }
+
+  const handleDelete = async (vehicle) => {
+    if (!window.confirm(`Delete vehicle "${vehicle.vehicle_number}" (${vehicle.driver_name})? This cannot be undone.`)) {
+      return
+    }
+
+    try {
+      await api.deleteVehicle(vehicle.vehicle_id)
+      toast.success(`Deleted "${vehicle.vehicle_number}"`)
+      load()
+    } catch (err) {
+      toast.error(err.response?.data?.error ?? 'Failed to delete vehicle')
     }
   }
 
@@ -184,12 +198,19 @@ export default function VehiclePanel({ onVehiclesChange }) {
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
           {vehicles.map(v => (
-            <div key={v.vehicle_id} className="card p-3">
+            <div key={v.vehicle_id} className="card p-3 group hover:shadow-md transition-shadow">
               <div className="flex items-center justify-between mb-1">
                 <p className="font-semibold text-sm text-gray-900 truncate">{v.vehicle_number}</p>
-                <span className="badge-gray shrink-0 ml-1">{v.vehicle_type}</span>
+                <button
+                  onClick={() => handleDelete(v)}
+                  className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors opacity-0 group-hover:opacity-100"
+                  title="Delete vehicle"
+                >
+                  <Trash2 size={12} />
+                </button>
               </div>
-              <p className="text-xs text-gray-600 truncate">{v.driver_name}</p>
+              <span className="badge-gray shrink-0 text-xs">{v.vehicle_type}</span>
+              <p className="text-xs text-gray-600 truncate mt-1">{v.driver_name}</p>
               <p className="text-xs text-gray-400">{v.phone || '—'}</p>
             </div>
           ))}

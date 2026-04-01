@@ -15,7 +15,7 @@ export default function AlertFeed({ alerts }) {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-1.5">
+      <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-2">
         {alerts.length === 0 ? (
           <p className="text-xs text-gray-400 text-center mt-4 px-2">
             No alerts yet. Configure alert rules to see real-time notifications here.
@@ -26,24 +26,24 @@ export default function AlertFeed({ alerts }) {
             return (
               <div
                 key={i}
-                className={`rounded-lg p-2.5 text-xs ${
+                className={`rounded-lg p-3 text-xs border-l-4 transition-all hover:shadow-md hover:scale-[1.01] cursor-pointer ${
                   isEntry
-                    ? 'bg-green-50 border border-green-100'
-                    : 'bg-red-50 border border-red-100'
+                    ? 'bg-green-50 border-l-green-500 border border-green-200'
+                    : 'bg-red-50 border-l-red-500 border border-red-200'
                 }`}
               >
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className={`font-semibold ${isEntry ? 'text-green-800' : 'text-red-800'}`}>
-                    {isEntry ? '↘ Entry' : '↗ Exit'}
+                <div className="flex items-center justify-between mb-1">
+                  <span className={`font-bold ${isEntry ? 'text-green-700' : 'text-red-700'}`}>
+                    {isEntry ? '\u2198\ufe0f Entry' : '\u2197\ufe0f Exit'}
                   </span>
-                  <span className="text-gray-400 text-[10px]">
+                  <span className="text-gray-400 text-[10px] font-mono">
                     {format(new Date(a.timestamp), 'HH:mm:ss')}
                   </span>
                 </div>
-                <p className={`font-medium truncate ${isEntry ? 'text-green-900' : 'text-red-900'}`}>
+                <p className={`font-bold truncate ${isEntry ? 'text-green-900' : 'text-red-900'}`}>
                   {a.vehicle.vehicle_number}
                 </p>
-                <p className={`truncate ${isEntry ? 'text-green-700' : 'text-red-700'} opacity-80`}>
+                <p className={`truncate opacity-90 ${isEntry ? 'text-green-800' : 'text-red-800'}`}>
                   {a.geofence.geofence_name}
                 </p>
               </div>

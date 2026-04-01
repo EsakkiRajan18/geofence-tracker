@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client'
 import toast from 'react-hot-toast'
-import { Plus, MapPin, X, RefreshCw, AlertCircle, Loader } from 'lucide-react'
+import { Plus, MapPin, X, RefreshCw, AlertCircle, Loader, Trash2 } from 'lucide-react'
 
 const CATEGORIES = ['residential', 'commercial', 'industrial', 'restricted', 'warehouse', 'other']
 const COLORS = ['bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-red-500', 'bg-violet-500', 'bg-pink-500', 'bg-cyan-500', 'bg-orange-500']
@@ -115,6 +115,21 @@ export default function GeofencePanel({ onGeofencesChange }) {
       toast.error(msg)
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleDelete = async (geofence) => {
+    if (!window.confirm(`Delete geofence "${geofence.geofence_name}"? This cannot be undone.`)) {
+      return
+    }
+
+    try {
+      await api.deleteGeofence(geofence.geofence_id)
+      toast.success(`Deleted "${geofence.geofence_name}"`)
+      load()
+    } catch (err) {
+      const msg = err?.response?.data?.error || err?.message || 'Failed to delete geofence'
+      toast.error(msg)
     }
   }
 
@@ -278,7 +293,7 @@ export default function GeofencePanel({ onGeofencesChange }) {
             {geofences.map((g, idx) => (
               <div
                 key={g.geofence_id}
-                className="p-3 border border-gray-100 rounded-lg hover:border-gray-200 hover:shadow-sm transition-all bg-gray-50/50"
+                className="p-3 border border-gray-100 rounded-lg hover:border-gray-200 hover:shadow-sm transition-all bg-gray-50/50 group"
               >
                 <div className="flex items-start gap-2.5">
                   <div className={`w-3 h-3 rounded-full flex-shrink-0 mt-1 ${COLORS[idx % COLORS.length]}`} />
@@ -298,6 +313,13 @@ export default function GeofencePanel({ onGeofencesChange }) {
                       <p className="text-xs text-gray-500 mt-1.5 line-clamp-2">{g.description}</p>
                     )}
                   </div>
+                  <button
+                    onClick={() => handleDelete(g)}
+                    className="flex-shrink-0 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                    title="Delete geofence"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               </div>
             ))}
